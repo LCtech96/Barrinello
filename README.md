@@ -60,6 +60,43 @@ pnpm build
 pnpm start
 ```
 
+## Deploy su Vercel
+
+Il progetto è configurato per il deploy automatico su Vercel.
+
+### Opzione 1: Deploy tramite GitHub (Consigliato)
+
+1. Vai su [Vercel](https://vercel.com) e accedi con il tuo account GitHub
+2. Clicca su "Add New Project"
+3. Seleziona il repository `LCtech96/Barrinello`
+4. Vercel rileverà automaticamente le impostazioni Next.js
+5. Aggiungi le variabili d'ambiente (se necessario):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+6. Clicca su "Deploy"
+
+Il sito sarà disponibile su un URL tipo: `https://barrinello.vercel.app`
+
+### Opzione 2: Deploy tramite CLI
+
+1. Installa Vercel CLI:
+```bash
+pnpm add -g vercel
+```
+
+2. Esegui il deploy:
+```bash
+vercel
+```
+
+3. Segui le istruzioni nella CLI per completare il deploy
+
+### Variabili d'Ambiente su Vercel
+
+Se usi Supabase, aggiungi queste variabili nelle impostazioni del progetto su Vercel:
+- `NEXT_PUBLIC_SUPABASE_URL` - URL del tuo progetto Supabase
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Chiave anonima di Supabase
+
 ## Licenza
 
 Proprietario: Ristorante Barinello
