@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { Menu, Users, ShoppingBag, Moon, Sun, X } from "lucide-react"
+import { Menu, ShoppingBag, Calendar, Moon, Sun, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavigationProps {
@@ -14,10 +14,20 @@ export function Navigation({ className }: NavigationProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [showDisclaimer, setShowDisclaimer] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Evita hydration mismatch aspettando che il componente sia montato
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleClick = (item: string) => {
     if (item === "menu") {
       router.push("/menu")
+    } else if (item === "takeaway") {
+      router.push("/asporto")
+    } else if (item === "booking") {
+      router.push("/booking")
     } else {
       setShowDisclaimer(item)
       setTimeout(() => setShowDisclaimer(null), 3000)
@@ -26,8 +36,8 @@ export function Navigation({ className }: NavigationProps) {
 
   const navItems = [
     { id: "menu", label: "Menù", icon: Menu },
-    { id: "about", label: "Chi siamo", icon: Users },
     { id: "takeaway", label: "Asporto", icon: ShoppingBag },
+    { id: "booking", label: "Booking", icon: Calendar },
   ]
 
   return (
@@ -55,7 +65,7 @@ export function Navigation({ className }: NavigationProps) {
             className="p-2 rounded-lg hover:bg-accent transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {mounted && theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
         </div>
       </nav>
@@ -81,7 +91,7 @@ export function Navigation({ className }: NavigationProps) {
             className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {mounted && theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             <span className="text-xs">Tema</span>
           </button>
         </div>

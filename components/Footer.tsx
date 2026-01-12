@@ -13,9 +13,9 @@ export function Footer() {
 
   return (
     <>
-      <footer className="bg-background border-t border-border py-8">
+      <footer className="bg-background border-t border-border py-8 pb-24 md:pb-8">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-6">
             <button
               onClick={() => handleClick("facebook")}
               className="flex items-center gap-2 px-6 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -23,13 +23,28 @@ export function Footer() {
               <Facebook className="w-5 h-5" />
               <span>Facebook</span>
             </button>
-            <button
-              onClick={() => handleClick("whatsapp")}
+            <a
+              href="https://wa.me/393207279857"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
             >
               <MessageCircle className="w-5 h-5" />
               <span>WhatsApp</span>
-            </button>
+            </a>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Created by{" "}
+              <a
+                href="https://facevoice.ai/home"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                facevoice.ai
+              </a>
+            </p>
           </div>
         </div>
       </footer>

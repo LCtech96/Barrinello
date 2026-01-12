@@ -28,6 +28,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# files with sensitive data
+VERCEL_ENV_VARIABLES.txt
+
 # vercel
 .vercel
 

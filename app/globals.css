@@ -58,3 +58,20 @@
   }
 }
 
+/* Nascondi controlli audio nei video */
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-mute-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Nascondi il controllo del volume in Firefox */
+video {
+  -moz-appearance: none;
+}

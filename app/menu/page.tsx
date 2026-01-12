@@ -1,6 +1,7 @@
 "use client"
 
 import { Navigation } from "@/components/Navigation"
+import { Footer } from "@/components/Footer"
 import { ExternalLink } from "lucide-react"
 import Link from "next/link"
 
@@ -37,6 +38,9 @@ export default function MenuPage() {
           </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </main>
   )
 }
