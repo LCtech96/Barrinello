@@ -13,7 +13,7 @@ export function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Ciao! 👋 Sono l'assistente AI del Ristorante Barinello. Come posso aiutarti oggi?",
+      content: "Ciao! 👋 Sono l'assistente del Ristorante Barinello. Come posso aiutarti oggi?",
     },
   ])
   const [input, setInput] = useState("")
@@ -21,8 +21,113 @@ export function AIAssistant() {
   const [hasBookingInterest, setHasBookingInterest] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
-  const lastRequestTimeRef = useRef<number>(0)
-  const requestCooldown = 1000 // 1 secondo tra le richieste
+
+  // Funzione per generare risposte hardcoded
+  const getHardcodedResponse = (userMessage: string): { message: string; hasBookingInterest: boolean } => {
+    const message = userMessage.toLowerCase().trim()
+    
+    // Saluti
+    if (message.match(/^(ciao|salve|buongiorno|buonasera|buon pomeriggio|hey|hi)$/)) {
+      return {
+        message: "Ciao! 👋 Benvenuto al Ristorante Barinello. Come posso aiutarti?",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Orari
+    if (message.includes("orari") || message.includes("orario") || message.includes("aperto") || message.includes("chiuso") || message.includes("siete aperti")) {
+      const now = new Date()
+      const hour = now.getHours()
+      const isOpen = hour >= 7 && hour < 25 // 07:00 - 01:00
+      
+      return {
+        message: isOpen 
+          ? "Siamo aperti! 🕐 Gli orari sono: 07:00 - 01:00 tutti i giorni."
+          : "Al momento siamo chiusi. Siamo aperti dalle 07:00 alle 01:00 tutti i giorni.",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Che ore sono
+    if (message.includes("ore") && (message.includes("sono") || message.includes("è"))) {
+      const now = new Date()
+      const time = now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
+      return {
+        message: `Sono le ${time}.`,
+        hasBookingInterest: false
+      }
+    }
+    
+    // Prenotazioni
+    if (message.includes("prenot") || message.includes("tavolo") || message.includes("disponibil") || message.includes("posto")) {
+      return {
+        message: "Per prenotare un tavolo, puoi contattarci via WhatsApp! 📱 Ti risponderemo il prima possibile.",
+        hasBookingInterest: true
+      }
+    }
+    
+    // Menu
+    if (message.includes("menu") || message.includes("piatti") || message.includes("cosa avete") || message.includes("cosa c'è")) {
+      return {
+        message: "Abbiamo un'ampia selezione di piatti di pesce freschissimo! 🐟 Puoi vedere il menu completo nella sezione 'Asporto' del sito. Specialità: antipasti di mare, primi piatti, grigliate e molto altro!",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Prezzi
+    if (message.includes("prezzo") || message.includes("quanto costa") || message.includes("costi")) {
+      return {
+        message: "I prezzi variano a seconda del piatto. Puoi vedere tutti i prezzi nel menu nella sezione 'Asporto'. I nostri antipasti partono da €10, i primi da €14 e i secondi da €12.",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Posizione/Indirizzo
+    if (message.includes("dove") || message.includes("indirizzo") || message.includes("posizione") || message.includes("ubicazione") || message.includes("come arrivare")) {
+      return {
+        message: "Ci troviamo a Terrasini, in Lungomare Peppino Impastato N1, Terrasini Favarotta. 🗺️ Siamo affacciati sul mare con una bellissima terrazza!",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Specialità
+    if (message.includes("specialità") || message.includes("tipico") || message.includes("famoso") || message.includes("consigli")) {
+      return {
+        message: "Le nostre specialità sono i piatti di pesce freschissimo del Mediterraneo! 🐟 Ti consiglio: Polipetti Murati (€16), Tagliolino Ricci e Gambero (€26), Grigliata Mista di Pesce (€35 per 2 persone).",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Asporto
+    if (message.includes("asporto") || message.includes("take away") || message.includes("portare via")) {
+      return {
+        message: "Sì, facciamo asporto! 🍱 Puoi vedere il menu completo nella sezione 'Asporto' del sito e ordinarci via WhatsApp.",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Contatti
+    if (message.includes("telefono") || message.includes("numero") || message.includes("contatto") || message.includes("chiamare")) {
+      return {
+        message: "Puoi contattarci via WhatsApp al numero +39 320 727 9857. 📱 Siamo sempre disponibili per rispondere alle tue domande!",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Grazie
+    if (message.includes("grazie") || message.includes("grazie mille") || message.includes("perfetto")) {
+      return {
+        message: "Prego! 😊 Se hai altre domande, sono qui per aiutarti!",
+        hasBookingInterest: false
+      }
+    }
+    
+    // Default - risposta generica
+    return {
+      message: "Grazie per la tua domanda! 😊 Posso aiutarti con informazioni su orari, menu, prenotazioni e posizione. Cosa vorresti sapere?",
+      hasBookingInterest: false
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -32,61 +137,22 @@ export function AIAssistant() {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!input.trim() || isLoading) return
-
-    // Rate limiting lato client: evita richieste troppo frequenti
-    const now = Date.now()
-    const timeSinceLastRequest = now - lastRequestTimeRef.current
-    if (timeSinceLastRequest < requestCooldown) {
-      const waitTime = requestCooldown - timeSinceLastRequest
-      console.log(`Rate limiting: waiting ${waitTime}ms before sending request`)
-      await new Promise(resolve => setTimeout(resolve, waitTime))
-    }
 
     const userMessage = input.trim()
     setInput("")
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
     setIsLoading(true)
     setHasBookingInterest(false)
-    lastRequestTimeRef.current = Date.now()
 
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...messages, { role: "user", content: userMessage }],
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.details || errorData.error || "Errore nella risposta")
-      }
-
-      const data = await response.json()
-      
-      if (data.error) {
-        throw new Error(data.error)
-      }
-      
-      setMessages((prev) => [...prev, { role: "assistant", content: data.message }])
-      setHasBookingInterest(data.hasBookingInterest || false)
-    } catch (error: any) {
-      console.error("Error:", error)
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: `Mi dispiace, c'è stato un errore. ${error.message || "Riprova più tardi."} 😔`,
-        },
-      ])
-    } finally {
+    // Simula un piccolo delay per rendere più naturale
+    setTimeout(() => {
+      const response = getHardcodedResponse(userMessage)
+      setMessages((prev) => [...prev, { role: "assistant", content: response.message }])
+      setHasBookingInterest(response.hasBookingInterest)
       setIsLoading(false)
-    }
+    }, 500) // 500ms di delay per simulare il tempo di risposta
   }
 
   const handleClear = () => {
@@ -94,7 +160,7 @@ export function AIAssistant() {
       setMessages([
         {
           role: "assistant",
-          content: "Ciao! 👋 Sono l'assistente AI del Ristorante Barinello. Come posso aiutarti oggi?",
+          content: "Ciao! 👋 Sono l'assistente del Ristorante Barinello. Come posso aiutarti oggi?",
         },
       ])
       setHasBookingInterest(false)
@@ -157,7 +223,7 @@ export function AIAssistant() {
           <div className="bg-primary text-primary-foreground p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5" />
-              <h3 className="font-semibold">Assistente AI Barinello</h3>
+              <h3 className="font-semibold">Assistente Barinello</h3>
             </div>
             <div className="flex items-center gap-2">
               <button
