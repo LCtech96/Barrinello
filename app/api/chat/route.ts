@@ -36,9 +36,8 @@ async function generateMenuText(): Promise<string> {
     ...category,
     dishes: category.dishes.filter((dish: any) => dish.visible !== false)
   }))
-      dishes: [
-        { name: "Polipetti Murati", description: "Polipetti marinati con olio, limone e prezzemolo", price: "€16.00" },
-        { name: "Ostrica", description: "Ostriche freschissime del giorno", price: "€4.00" },
+  
+  let menuText = "\nMENÙ COMPLETO DEL RISTORANTE BARINELLO:\n\n"
         { name: "Insalata di Mare", description: "Polpo, Calamari, Cozze, Vongole, Carote, Sedano", price: "€15.00" },
         { name: "Caponata di Pesce Spada", description: "Pesce spada, Melanzane, Sedano, Olive, Capperi", price: "€14.00" },
         { name: "Cocktail di Gamberi", description: "Gamberi, Lattuga, Salsa cocktail", price: "€14.00" },
@@ -246,11 +245,7 @@ async function generateMenuText(): Promise<string> {
         { name: "Cremino", description: "", price: "€4.00" },
         { name: "Cornetto", description: "", price: "€1.50" },
         { name: "Cornetto Special", description: "", price: "€1.80" },
-        { name: "Mignon Dolce / Salato", description: "", price: "€1.00" },
-        { name: "Rosticceria", description: "", price: "€2.00" },
-  let menuText = "\nMENÙ COMPLETO DEL RISTORANTE BARINELLO:\n\n"
-  
-  menuCategories.forEach(category => {
+  menuCategories.forEach((category: any) => {
     menuText += `=== ${category.title} ===\n`
     category.dishes.forEach(dish => {
       menuText += `• ${dish.name}`
