@@ -8,6 +8,14 @@ interface Message {
   content: string
 }
 
+interface AIKnowledge {
+  openingHours: string
+  closingDays: string[]
+  holidays: Array<{ date: string; description: string }>
+  events: Array<{ date: string; description: string }>
+  additionalInfo: string
+}
+
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -19,11 +27,34 @@ export function AIAssistant() {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [hasBookingInterest, setHasBookingInterest] = useState(false)
+  const [aiKnowledge, setAiKnowledge] = useState<AIKnowledge>({
+    openingHours: "07:00 - 01:00",
+    closingDays: [],
+    holidays: [],
+    events: [],
+    additionalInfo: ""
+  })
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
+  // Carica le informazioni dall'admin al mount
+  useEffect(() => {
+    const loadAIKnowledge = async () => {
+      try {
+        const response = await fetch("/api/ai-knowledge")
+        if (response.ok) {
+          const data = await response.json()
+          setAiKnowledge(data)
+        }
+      } catch (error) {
+        console.error("Error loading AI knowledge:", error)
+      }
+    }
+    loadAIKnowledge()
+  }, [])
+
   // Funzione per generare risposte hardcoded
-  const getHardcodedResponse = (userMessage: string): { message: string; hasBookingInterest: boolean } => {
+  const getHardcodedResponse = (userMessage: string, knowledge: AIKnowledge): { message: string; hasBookingInterest: boolean } => {
     const message = userMessage.toLowerCase().trim()
     
     // Saluti
@@ -35,15 +66,65 @@ export function AIAssistant() {
     }
     
     // Orari
-    if (message.includes("orari") || message.includes("orario") || message.includes("aperto") || message.includes("chiuso") || message.includes("siete aperti")) {
+    if (message.includes("orari") || message.includes("orario") || message.includes("aperto") || message.includes("chiuso") || message.includes("siete aperti") || message.includes("aprite") || message.includes("chiudete")) {
+      const openingHours = knowledge.openingHours || "07:00 - 01:00"
       const now = new Date()
       const hour = now.getHours()
-      const isOpen = hour >= 7 && hour < 25 // 07:00 - 01:00
+      const minute = now.getMinutes()
+      const currentTime = hour * 60 + minute
+      
+      // Parse orari (formato: "07:00 - 01:00" o simile)
+      const [openTime, closeTime] = openingHours.split(" - ").map(time => {
+        const [h, m] = time.split(":").map(Number)
+        return h * 60 + (m || 0)
+      })
+      
+      // Se l'orario di chiusura è minore di quello di apertura, significa che chiude il giorno dopo
+      const isOpen = closeTime < openTime 
+        ? (currentTime >= openTime || currentTime < closeTime)
+        : (currentTime >= openTime && currentTime < closeTime)
+      
+      // Verifica giorni di chiusura
+      const today = now.toLocaleDateString("it-IT", { weekday: "long" }).toLowerCase()
+      const isClosingDay = knowledge.closingDays?.some(day => day.toLowerCase() === today)
+      
+      // Verifica festività (formato: "DD/MM" o "DD-MM" o "YYYY-MM-DD")
+      const todayStr = now.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })
+      const todayFullStr = now.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" })
+      const isHoliday = knowledge.holidays?.some(h => {
+        const holidayDate = h.date.replace(/-/g, "/")
+        return holidayDate.includes(todayStr) || holidayDate === todayFullStr
+      })
+      
+      // Verifica eventi speciali
+      const hasEvent = knowledge.events?.some(e => {
+        const eventDate = e.date.replace(/-/g, "/")
+        return eventDate.includes(todayStr) || eventDate === todayFullStr
+      })
+      const todayEvent = knowledge.events?.find(e => {
+        const eventDate = e.date.replace(/-/g, "/")
+        return eventDate.includes(todayStr) || eventDate === todayFullStr
+      })
+      
+      let statusMessage = ""
+      if (isClosingDay || isHoliday) {
+        const reason = isClosingDay ? "giorno di chiusura settimanale" : "festività"
+        statusMessage = `Oggi siamo chiusi (${reason}). `
+      } else if (isOpen) {
+        statusMessage = "Siamo aperti! 🕐 "
+      } else {
+        statusMessage = "Al momento siamo chiusi. "
+      }
+      
+      const hoursMessage = `Siamo aperti dalle ${openingHours.split(" - ")[0]} alle ${openingHours.split(" - ")[1]} del mattino successivo.`
+      
+      let eventMessage = ""
+      if (hasEvent && todayEvent) {
+        eventMessage = `\n\n📅 Evento di oggi: ${todayEvent.description}`
+      }
       
       return {
-        message: isOpen 
-          ? "Siamo aperti! 🕐 Gli orari sono: 07:00 - 01:00 tutti i giorni."
-          : "Al momento siamo chiusi. Siamo aperti dalle 07:00 alle 01:00 tutti i giorni.",
+        message: statusMessage + hoursMessage + eventMessage,
         hasBookingInterest: false
       }
     }
@@ -153,9 +234,33 @@ export function AIAssistant() {
       }
     }
     
+    // Controlla se ci sono informazioni aggiuntive dall'admin che potrebbero rispondere
+    if (knowledge.additionalInfo && knowledge.additionalInfo.trim()) {
+      // Se il messaggio contiene parole chiave che potrebbero essere nelle info aggiuntive
+      const additionalInfoLower = knowledge.additionalInfo.toLowerCase()
+      const messageWords = message.split(/\s+/)
+      const hasMatchingKeywords = messageWords.some(word => 
+        word.length > 3 && additionalInfoLower.includes(word)
+      )
+      
+      if (hasMatchingKeywords) {
+        return {
+          message: knowledge.additionalInfo,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
     // Default - risposta generica
+    let defaultMessage = "Grazie per la tua domanda! 😊 Posso aiutarti con informazioni su orari, menu, prenotazioni e posizione. Cosa vorresti sapere?"
+    
+    // Aggiungi informazioni aggiuntive se disponibili
+    if (knowledge.additionalInfo && knowledge.additionalInfo.trim()) {
+      defaultMessage += `\n\n${knowledge.additionalInfo}`
+    }
+    
     return {
-      message: "Grazie per la tua domanda! 😊 Posso aiutarti con informazioni su orari, menu, prenotazioni e posizione. Cosa vorresti sapere?",
+      message: defaultMessage,
       hasBookingInterest: false
     }
   }
@@ -179,7 +284,7 @@ export function AIAssistant() {
 
     // Simula un piccolo delay per rendere più naturale
     setTimeout(() => {
-      const response = getHardcodedResponse(userMessage)
+      const response = getHardcodedResponse(userMessage, aiKnowledge)
       setMessages((prev) => [...prev, { role: "assistant", content: response.message }])
       setHasBookingInterest(response.hasBookingInterest)
       setIsLoading(false)
