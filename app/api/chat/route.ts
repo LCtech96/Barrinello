@@ -507,6 +507,11 @@ ISTRUZIONI FINALI:
       }
     }
     
+    // Verifica che completion sia stato definito
+    if (!completion) {
+      throw new Error("Impossibile completare la richiesta dopo tutti i tentativi")
+    }
+    
     // Se arriviamo qui, la chiamata è andata a buon fine
     const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
 
