@@ -1,4 +1,3 @@
-import Groq from "groq-sdk"
 import { NextRequest, NextResponse } from "next/server"
 
 const API_KEY = process.env.GROQ_API_KEY || process.env.groq_api_key || ""
@@ -341,12 +340,13 @@ export async function POST(request: NextRequest) {
       minute: "2-digit"
     })
 
-    const groq = new Groq({
-      apiKey: API_KEY,
-    })
+    console.log("API Key present:", !!API_KEY)
+    console.log("API Key length:", API_KEY?.length || 0)
+    console.log("API Key starts with gsk_:", API_KEY?.startsWith("gsk_") || false)
 
     // Genera il menù completo
     const menuText = generateMenuText()
+    console.log("Menu text generated, length:", menuText.length)
     
     // Costruisci il system prompt con le informazioni dall'admin
     let knowledgeInfo = `- Orari: ${aiKnowledge.openingHours}\n`
@@ -419,36 +419,62 @@ ISTRUZIONI FINALI:
       })
     }
 
-    // Aggiungi timeout per la chiamata a Groq (30 secondi)
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Timeout: la richiesta ha impiegato troppo tempo")), 30000)
-    })
+    console.log("Preparing Groq API call...")
+    console.log("Messages count:", groqMessages.length)
+    console.log("First message preview:", groqMessages[0]?.content?.substring(0, 100))
 
+    // Usa fetch diretto invece della SDK per maggiore affidabilità su Vercel
     let completion
     try {
-      completion = await Promise.race([
-        groq.chat.completions.create({
+      console.log("Calling Groq API via REST...")
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 secondi timeout
+      
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
           messages: groqMessages,
-          model: "llama-3.1-8b-instant", // Modello più leggero e veloce
-          temperature: 0.6, // Ridotto per risposte più concise
-          max_tokens: 200, // Ridotto drasticamente per risposte brevissime
+          temperature: 0.6,
+          max_tokens: 200,
         }),
-        timeoutPromise
-      ]) as any
+        signal: controller.signal,
+      })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Groq API HTTP Error:", response.status, errorText)
+        throw new Error(`Groq API error: ${response.status} - ${errorText}`)
+      }
+      
+      completion = await response.json()
+      console.log("Groq API call successful")
     } catch (groqError: any) {
-      console.error("Groq API Error:", groqError)
+      console.error("=== GROQ API ERROR ===")
+      console.error("Error:", groqError)
       console.error("Error type:", groqError?.constructor?.name)
+      console.error("Error name:", groqError?.name)
+      console.error("Error message:", groqError?.message)
       console.error("Error status:", groqError?.status)
       console.error("Error code:", groqError?.code)
+      console.error("Error stack:", groqError?.stack)
+      console.error("====================")
       
-      // Gestisci errori specifici di Groq
-      if (groqError.status === 401 || groqError.message?.includes("401")) {
-        throw new Error("Chiave API Groq non valida o scaduta")
-      } else if (groqError.status === 429 || groqError.message?.includes("429")) {
-        throw new Error("Troppe richieste. Riprova tra qualche momento.")
-      } else if (groqError.message?.includes("Timeout") || groqError.message?.includes("timeout")) {
+      // Gestisci errori specifici
+      if (groqError.name === "AbortError" || groqError.message?.includes("Timeout") || groqError.message?.includes("timeout")) {
         throw new Error("Timeout: il servizio ha impiegato troppo tempo a rispondere")
-      } else if (groqError.message?.includes("ENOTFOUND") || groqError.message?.includes("ECONNREFUSED") || groqError.message?.includes("ECONNRESET")) {
+      } else if (groqError.message?.includes("401") || groqError.status === 401) {
+        throw new Error("Chiave API Groq non valida o scaduta")
+      } else if (groqError.message?.includes("429") || groqError.status === 429) {
+        throw new Error("Troppe richieste. Riprova tra qualche momento.")
+      } else if (groqError.message?.includes("ENOTFOUND") || groqError.message?.includes("ECONNREFUSED") || groqError.message?.includes("ECONNRESET") || groqError.message?.includes("fetch failed")) {
         throw new Error("Errore di connessione con il servizio AI. Riprova.")
       } else if (groqError.message?.includes("Connection") || groqError.message?.includes("connection")) {
         throw new Error("Errore di connessione. Verifica la tua connessione internet e riprova.")
