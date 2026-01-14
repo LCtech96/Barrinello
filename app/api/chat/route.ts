@@ -38,7 +38,6 @@ async function generateMenuText(): Promise<string> {
   }))
   
   let menuText = "\nMENÙ COMPLETO DEL RISTORANTE BARINELLO:\n\n"
-        { name: "Insalata di Mare", description: "Polpo, Calamari, Cozze, Vongole, Carote, Sedano", price: "€15.00" },
         { name: "Caponata di Pesce Spada", description: "Pesce spada, Melanzane, Sedano, Olive, Capperi", price: "€14.00" },
         { name: "Cocktail di Gamberi", description: "Gamberi, Lattuga, Salsa cocktail", price: "€14.00" },
         { name: "Gamberi Marinati", description: "Gamberi, Olio, Limone", price: "€14.00" },
@@ -244,7 +243,6 @@ async function generateMenuText(): Promise<string> {
         { name: "Ginseng grande", description: "", price: "€2.50" },
         { name: "Cremino", description: "", price: "€4.00" },
         { name: "Cornetto", description: "", price: "€1.50" },
-        { name: "Cornetto Special", description: "", price: "€1.80" },
   menuCategories.forEach((category: any) => {
     menuText += `=== ${category.title} ===\n`
     category.dishes.forEach(dish => {
