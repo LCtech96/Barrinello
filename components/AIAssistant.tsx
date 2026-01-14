@@ -48,12 +48,43 @@ export function AIAssistant() {
       }
     }
     
+    // Che giorno è oggi
+    if (message.includes("giorno") && (message.includes("oggi") || message.includes("è") || message.includes("sono"))) {
+      const now = new Date()
+      const date = now.toLocaleDateString("it-IT", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })
+      return {
+        message: `Oggi è ${date}. 📅`,
+        hasBookingInterest: false
+      }
+    }
+    
     // Che ore sono
     if (message.includes("ore") && (message.includes("sono") || message.includes("è"))) {
       const now = new Date()
       const time = now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
       return {
-        message: `Sono le ${time}.`,
+        message: `Sono le ${time}. 🕐`,
+        hasBookingInterest: false
+      }
+    }
+    
+    // Data e ora insieme
+    if (message.includes("data") && message.includes("ora") || (message.includes("quando") && message.includes("ora"))) {
+      const now = new Date()
+      const date = now.toLocaleDateString("it-IT", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })
+      const time = now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
+      return {
+        message: `Oggi è ${date}, sono le ${time}. 📅🕐`,
         hasBookingInterest: false
       }
     }
