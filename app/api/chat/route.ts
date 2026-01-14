@@ -307,9 +307,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!API_KEY) {
+    if (!API_KEY || API_KEY.trim() === "") {
+      console.error("Groq API key is missing or empty")
       return NextResponse.json(
         { error: "Groq API key is not configured" },
+        { status: 500 }
+      )
+    }
+
+    // Verifica che la chiave API abbia il formato corretto (inizia con gsk_)
+    if (!API_KEY.startsWith("gsk_")) {
+      console.error("Groq API key format is invalid")
+      return NextResponse.json(
+        { error: "Groq API key format is invalid" },
         { status: 500 }
       )
     }
@@ -409,12 +419,43 @@ ISTRUZIONI FINALI:
       })
     }
 
-    const completion = await groq.chat.completions.create({
-      messages: groqMessages,
-      model: "llama-3.1-8b-instant", // Modello più leggero e veloce
-      temperature: 0.6, // Ridotto per risposte più concise
-      max_tokens: 200, // Ridotto drasticamente per risposte brevissime
+    // Aggiungi timeout per la chiamata a Groq (30 secondi)
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Timeout: la richiesta ha impiegato troppo tempo")), 30000)
     })
+
+    let completion
+    try {
+      completion = await Promise.race([
+        groq.chat.completions.create({
+          messages: groqMessages,
+          model: "llama-3.1-8b-instant", // Modello più leggero e veloce
+          temperature: 0.6, // Ridotto per risposte più concise
+          max_tokens: 200, // Ridotto drasticamente per risposte brevissime
+        }),
+        timeoutPromise
+      ]) as any
+    } catch (groqError: any) {
+      console.error("Groq API Error:", groqError)
+      console.error("Error type:", groqError?.constructor?.name)
+      console.error("Error status:", groqError?.status)
+      console.error("Error code:", groqError?.code)
+      
+      // Gestisci errori specifici di Groq
+      if (groqError.status === 401 || groqError.message?.includes("401")) {
+        throw new Error("Chiave API Groq non valida o scaduta")
+      } else if (groqError.status === 429 || groqError.message?.includes("429")) {
+        throw new Error("Troppe richieste. Riprova tra qualche momento.")
+      } else if (groqError.message?.includes("Timeout") || groqError.message?.includes("timeout")) {
+        throw new Error("Timeout: il servizio ha impiegato troppo tempo a rispondere")
+      } else if (groqError.message?.includes("ENOTFOUND") || groqError.message?.includes("ECONNREFUSED") || groqError.message?.includes("ECONNRESET")) {
+        throw new Error("Errore di connessione con il servizio AI. Riprova.")
+      } else if (groqError.message?.includes("Connection") || groqError.message?.includes("connection")) {
+        throw new Error("Errore di connessione. Verifica la tua connessione internet e riprova.")
+      }
+      // Rilancia l'errore originale se non è stato gestito
+      throw groqError
+    }
 
     const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
 
@@ -435,9 +476,27 @@ ISTRUZIONI FINALI:
   } catch (error: any) {
     console.error("AI Chat Error:", error)
     console.error("Error details:", JSON.stringify(error, null, 2))
+    
+    // Determina il messaggio di errore appropriato
+    let errorMessage = "Errore nella comunicazione con l'AI"
+    
+    if (error.message) {
+      if (error.message.includes("Chiave API")) {
+        errorMessage = "Problema con la configurazione della chiave API"
+      } else if (error.message.includes("Timeout") || error.message.includes("timeout")) {
+        errorMessage = "Timeout: il servizio ha impiegato troppo tempo a rispondere"
+      } else if (error.message.includes("connessione") || error.message.includes("Connection")) {
+        errorMessage = "Errore di connessione. Riprova tra qualche momento."
+      } else if (error.message.includes("Troppe richieste")) {
+        errorMessage = "Troppe richieste. Riprova tra qualche momento."
+      } else {
+        errorMessage = error.message
+      }
+    }
+    
     return NextResponse.json(
       { 
-        error: "Errore nella comunicazione con l'AI", 
+        error: errorMessage,
         details: error.message || "Errore sconosciuto",
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       },
