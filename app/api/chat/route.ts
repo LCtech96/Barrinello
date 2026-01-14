@@ -529,32 +529,6 @@ ISTRUZIONI FINALI:
       message: text,
       hasBookingInterest,
     })
-  } catch (groqError: any) {
-      console.error("=== GROQ API ERROR ===")
-      console.error("Error:", groqError)
-      console.error("Error type:", groqError?.constructor?.name)
-      console.error("Error name:", groqError?.name)
-      console.error("Error message:", groqError?.message)
-      console.error("Error status:", groqError?.status)
-      console.error("Error code:", groqError?.code)
-      console.error("Error stack:", groqError?.stack)
-      console.error("====================")
-      
-      // Gestisci errori specifici
-      if (groqError.name === "AbortError" || groqError.message?.includes("Timeout") || groqError.message?.includes("timeout")) {
-        throw new Error("Timeout: il servizio ha impiegato troppo tempo a rispondere")
-      } else if (groqError.message?.includes("401") || groqError.status === 401) {
-        throw new Error("Chiave API Groq non valida o scaduta")
-      } else if (groqError.message?.includes("429") || groqError.status === 429) {
-        // Questo errore non dovrebbe più verificarsi grazie al retry, ma se succede comunque
-        throw new Error("Troppe richieste. Attendi qualche secondo e riprova.")
-      } else if (groqError.message?.includes("ENOTFOUND") || groqError.message?.includes("ECONNREFUSED") || groqError.message?.includes("ECONNRESET") || groqError.message?.includes("fetch failed")) {
-        throw new Error("Errore di connessione con il servizio AI. Riprova.")
-      } else if (groqError.message?.includes("Connection") || groqError.message?.includes("connection")) {
-        throw new Error("Errore di connessione. Verifica la tua connessione internet e riprova.")
-      }
-      // Rilancia l'errore originale se non è stato gestito
-      throw groqError
   } catch (error: any) {
     console.error("AI Chat Error:", error)
     console.error("Error details:", JSON.stringify(error, null, 2))
