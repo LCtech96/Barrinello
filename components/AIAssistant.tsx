@@ -16,6 +16,19 @@ interface AIKnowledge {
   additionalInfo: string
 }
 
+interface Dish {
+  name: string
+  description: string
+  price: string
+  image?: string
+  visible?: boolean
+}
+
+interface Category {
+  title: string
+  dishes: Dish[]
+}
+
 export function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -34,12 +47,14 @@ export function AIAssistant() {
     events: [],
     additionalInfo: ""
   })
+  const [menuCategories, setMenuCategories] = useState<Category[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
 
-  // Carica le informazioni dall'admin al mount
+  // Carica le informazioni dall'admin e il menu al mount
   useEffect(() => {
-    const loadAIKnowledge = async () => {
+    const loadData = async () => {
+      // Carica AI Knowledge
       try {
         const response = await fetch("/api/ai-knowledge")
         if (response.ok) {
@@ -49,12 +64,62 @@ export function AIAssistant() {
       } catch (error) {
         console.error("Error loading AI knowledge:", error)
       }
+
+      // Carica Menu
+      try {
+        const menuResponse = await fetch("/api/menu")
+        if (menuResponse.ok) {
+          const menuData = await menuResponse.json()
+          if (menuData && Array.isArray(menuData) && menuData.length > 0) {
+            setMenuCategories(menuData)
+          } else {
+            // Usa dati di default se non ci sono dati salvati
+            const { defaultMenuCategories } = await import("@/lib/menu-data-default")
+            setMenuCategories(defaultMenuCategories)
+          }
+        } else {
+          // Usa dati di default in caso di errore
+          const { defaultMenuCategories } = await import("@/lib/menu-data-default")
+          setMenuCategories(defaultMenuCategories)
+        }
+      } catch (error) {
+        console.error("Error loading menu:", error)
+        // Usa dati di default in caso di errore
+        const { defaultMenuCategories } = await import("@/lib/menu-data-default")
+        setMenuCategories(defaultMenuCategories)
+      }
     }
-    loadAIKnowledge()
+    loadData()
   }, [])
 
+  // Funzione per trovare una categoria nel menu
+  const findCategory = (searchTerms: string[]): Category | null => {
+    for (const category of menuCategories) {
+      const categoryTitle = category.title.toLowerCase()
+      if (searchTerms.some(term => categoryTitle.includes(term))) {
+        return category
+      }
+    }
+    return null
+  }
+
+  // Funzione per formattare una lista di piatti
+  const formatDishesList = (dishes: Dish[]): string => {
+    return dishes
+      .filter(dish => dish.visible !== false)
+      .map(dish => {
+        let dishText = `• ${dish.name}`
+        if (dish.description) {
+          dishText += ` - ${dish.description}`
+        }
+        dishText += ` | ${dish.price}`
+        return dishText
+      })
+      .join("\n")
+  }
+
   // Funzione per generare risposte hardcoded
-  const getHardcodedResponse = (userMessage: string, knowledge: AIKnowledge): { message: string; hasBookingInterest: boolean } => {
+  const getHardcodedResponse = (userMessage: string, knowledge: AIKnowledge, menu: Category[]): { message: string; hasBookingInterest: boolean } => {
     const message = userMessage.toLowerCase().trim()
     
     // Saluti
@@ -221,7 +286,156 @@ export function AIAssistant() {
       }
     }
     
-    // Menu
+    // Primi piatti
+    if (message.includes("primi") && (message.includes("avete") || message.includes("avete") || message.includes("c'è") || message.includes("avete") || message.includes("list"))) {
+      const primiMare = findCategory(["primi", "mare"])
+      const primiCarne = findCategory(["primi", "carne"])
+      
+      let response = "Ecco i nostri primi piatti:\n\n"
+      
+      if (primiMare && primiMare.dishes.length > 0) {
+        response += `🍝 PRIMI PIATTI DI MARE:\n${formatDishesList(primiMare.dishes)}\n\n`
+      }
+      
+      if (primiCarne && primiCarne.dishes.length > 0) {
+        response += `🍝 PRIMI PIATTI DI CARNE:\n${formatDishesList(primiCarne.dishes)}`
+      }
+      
+      return {
+        message: response.trim(),
+        hasBookingInterest: false
+      }
+    }
+    
+    // Secondi piatti
+    if (message.includes("secondi") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const secondiMare = findCategory(["secondi", "mare"])
+      const secondiCarne = findCategory(["secondi", "carne"])
+      
+      let response = "Ecco i nostri secondi piatti:\n\n"
+      
+      if (secondiMare && secondiMare.dishes.length > 0) {
+        response += `🐟 SECONDI PIATTI DI MARE:\n${formatDishesList(secondiMare.dishes)}\n\n`
+      }
+      
+      if (secondiCarne && secondiCarne.dishes.length > 0) {
+        response += `🥩 SECONDI PIATTI DI CARNE:\n${formatDishesList(secondiCarne.dishes)}`
+      }
+      
+      return {
+        message: response.trim(),
+        hasBookingInterest: false
+      }
+    }
+    
+    // Antipasti
+    if (message.includes("antipast") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const antipastiMare = findCategory(["antipast", "mare"])
+      const antipastiCarne = findCategory(["antipast", "carne"])
+      
+      let response = "Ecco i nostri antipasti:\n\n"
+      
+      if (antipastiMare && antipastiMare.dishes.length > 0) {
+        response += `🐟 ANTIPASTI DI MARE:\n${formatDishesList(antipastiMare.dishes)}\n\n`
+      }
+      
+      if (antipastiCarne && antipastiCarne.dishes.length > 0) {
+        response += `🥩 ANTIPASTI DI CARNE:\n${formatDishesList(antipastiCarne.dishes)}`
+      }
+      
+      return {
+        message: response.trim(),
+        hasBookingInterest: false
+      }
+    }
+    
+    // Dolci
+    if (message.includes("dolc") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const dolci = findCategory(["dolc"])
+      
+      if (dolci && dolci.dishes.length > 0) {
+        return {
+          message: `🍰 I NOSTRI DOLCI:\n${formatDishesList(dolci.dishes)}`,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
+    // Contorni
+    if (message.includes("contorn") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const contorni = findCategory(["contorn"])
+      
+      if (contorni && contorni.dishes.length > 0) {
+        return {
+          message: `🥗 I NOSTRI CONTORNI:\n${formatDishesList(contorni.dishes)}`,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
+    // Birre
+    if (message.includes("birr") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const birre = findCategory(["birr"])
+      
+      if (birre && birre.dishes.length > 0) {
+        return {
+          message: `🍺 LE NOSTRE BIRRE:\n${formatDishesList(birre.dishes)}`,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
+    // Vini
+    if (message.includes("vin") && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const viniBianchi = findCategory(["vini", "bianch"])
+      const viniRossi = findCategory(["vini", "ross"])
+      const viniFrizzanti = findCategory(["frizzant"]) || findCategory(["spumant"])
+      
+      let response = "Ecco i nostri vini:\n\n"
+      
+      if (viniBianchi && viniBianchi.dishes.length > 0) {
+        response += `🍷 VINI BIANCHI:\n${formatDishesList(viniBianchi.dishes)}\n\n`
+      }
+      
+      if (viniRossi && viniRossi.dishes.length > 0) {
+        response += `🍷 VINI ROSSI:\n${formatDishesList(viniRossi.dishes)}\n\n`
+      }
+      
+      if (viniFrizzanti && viniFrizzanti.dishes.length > 0) {
+        response += `🥂 VINI FRIZZANTI E SPUMANTI:\n${formatDishesList(viniFrizzanti.dishes)}`
+      }
+      
+      return {
+        message: response.trim(),
+        hasBookingInterest: false
+      }
+    }
+    
+    // Bibite
+    if ((message.includes("bibite") || message.includes("bevande")) && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const bibite = findCategory(["bibit"])
+      
+      if (bibite && bibite.dishes.length > 0) {
+        return {
+          message: `🥤 LE NOSTRE BIBITE:\n${formatDishesList(bibite.dishes)}`,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
+    // Caffetteria
+    if ((message.includes("caff") || message.includes("caffetteria")) && (message.includes("avete") || message.includes("c'è") || message.includes("list"))) {
+      const caffetteria = findCategory(["caffetteria"])
+      
+      if (caffetteria && caffetteria.dishes.length > 0) {
+        return {
+          message: `☕ CAFFETTERIA:\n${formatDishesList(caffetteria.dishes)}`,
+          hasBookingInterest: false
+        }
+      }
+    }
+    
+    // Menu generale
     if (message.includes("menu") || message.includes("piatti") || message.includes("cosa avete") || message.includes("cosa c'è")) {
       return {
         message: "Abbiamo un'ampia selezione di piatti di pesce freschissimo! 🐟 Puoi vedere il menu completo nella sezione 'Asporto' del sito. Specialità: antipasti di mare, primi piatti, grigliate e molto altro!",
@@ -327,7 +541,7 @@ export function AIAssistant() {
 
     // Simula un piccolo delay per rendere più naturale
     setTimeout(() => {
-      const response = getHardcodedResponse(userMessage, aiKnowledge)
+      const response = getHardcodedResponse(userMessage, aiKnowledge, menuCategories)
       setMessages((prev) => [...prev, { role: "assistant", content: response.message }])
       setHasBookingInterest(response.hasBookingInterest)
       setIsLoading(false)
