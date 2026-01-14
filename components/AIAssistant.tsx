@@ -21,6 +21,8 @@ export function AIAssistant() {
   const [hasBookingInterest, setHasBookingInterest] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
+  const lastRequestTimeRef = useRef<number>(0)
+  const requestCooldown = 1000 // 1 secondo tra le richieste
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -33,11 +35,21 @@ export function AIAssistant() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
+    // Rate limiting lato client: evita richieste troppo frequenti
+    const now = Date.now()
+    const timeSinceLastRequest = now - lastRequestTimeRef.current
+    if (timeSinceLastRequest < requestCooldown) {
+      const waitTime = requestCooldown - timeSinceLastRequest
+      console.log(`Rate limiting: waiting ${waitTime}ms before sending request`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
+    }
+
     const userMessage = input.trim()
     setInput("")
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
     setIsLoading(true)
     setHasBookingInterest(false)
+    lastRequestTimeRef.current = Date.now()
 
     try {
       const response = await fetch("/api/chat", {

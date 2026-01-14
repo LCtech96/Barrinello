@@ -433,38 +433,79 @@ ISTRUZIONI FINALI:
     console.log("First message preview:", groqMessages[0]?.content?.substring(0, 100))
 
     // Usa fetch diretto invece della SDK per maggiore affidabilità su Vercel
+    // Aggiungi retry con backoff esponenziale per errori 429 (rate limit)
     let completion
-    try {
-      console.log("Calling Groq API via REST...")
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 secondi timeout
-      
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          messages: groqMessages,
-          temperature: 0.6,
-          max_tokens: 200,
-        }),
-        signal: controller.signal,
-      })
-      
-      clearTimeout(timeoutId)
-      
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error("Groq API HTTP Error:", response.status, errorText)
-        throw new Error(`Groq API error: ${response.status} - ${errorText}`)
+    const maxRetries = 3
+    let retryCount = 0
+    
+    while (retryCount <= maxRetries) {
+      try {
+        console.log(`Calling Groq API via REST... (attempt ${retryCount + 1}/${maxRetries + 1})`)
+        
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 secondi timeout
+        
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: groqMessages,
+            temperature: 0.6,
+            max_tokens: 200,
+          }),
+          signal: controller.signal,
+        })
+        
+        clearTimeout(timeoutId)
+        
+        if (response.status === 429 && retryCount < maxRetries) {
+          // Rate limit: aspetta con backoff esponenziale
+          const retryAfter = response.headers.get("Retry-After")
+          const waitTime = retryAfter 
+            ? parseInt(retryAfter) * 1000 
+            : Math.min(1000 * Math.pow(2, retryCount), 10000) // Max 10 secondi
+          
+          console.log(`Rate limit hit. Waiting ${waitTime}ms before retry ${retryCount + 1}...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+          retryCount++
+          continue
+        }
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Groq API HTTP Error:", response.status, errorText)
+          throw new Error(`Groq API error: ${response.status} - ${errorText}`)
+        }
+        
+        completion = await response.json()
+        console.log("Groq API call successful")
+        break // Successo, esci dal loop
+      } catch (fetchError: any) {
+        if (fetchError.name === "AbortError") {
+          throw new Error("Timeout: il servizio ha impiegato troppo tempo a rispondere")
+        }
+        
+        // Se non è un errore 429 o abbiamo esaurito i retry, rilancia
+        if (retryCount >= maxRetries) {
+          throw fetchError
+        }
+        
+        // Se è un errore di rete, prova a fare retry
+        if (fetchError.message?.includes("fetch failed") || fetchError.message?.includes("ECONNREFUSED")) {
+          const waitTime = Math.min(1000 * Math.pow(2, retryCount), 5000)
+          console.log(`Network error. Retrying in ${waitTime}ms...`)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+          retryCount++
+          continue
+        }
+        
+        throw fetchError
       }
-      
-      completion = await response.json()
-      console.log("Groq API call successful")
+    }
     } catch (groqError: any) {
       console.error("=== GROQ API ERROR ===")
       console.error("Error:", groqError)
@@ -482,7 +523,8 @@ ISTRUZIONI FINALI:
       } else if (groqError.message?.includes("401") || groqError.status === 401) {
         throw new Error("Chiave API Groq non valida o scaduta")
       } else if (groqError.message?.includes("429") || groqError.status === 429) {
-        throw new Error("Troppe richieste. Riprova tra qualche momento.")
+        // Questo errore non dovrebbe più verificarsi grazie al retry, ma se succede comunque
+        throw new Error("Troppe richieste. Attendi qualche secondo e riprova.")
       } else if (groqError.message?.includes("ENOTFOUND") || groqError.message?.includes("ECONNREFUSED") || groqError.message?.includes("ECONNRESET") || groqError.message?.includes("fetch failed")) {
         throw new Error("Errore di connessione con il servizio AI. Riprova.")
       } else if (groqError.message?.includes("Connection") || groqError.message?.includes("connection")) {
