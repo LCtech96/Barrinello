@@ -530,7 +530,7 @@ export function AIAssistant() {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
     const userMessage = input.trim()
@@ -539,13 +539,42 @@ export function AIAssistant() {
     setIsLoading(true)
     setHasBookingInterest(false)
 
-    // Simula un piccolo delay per rendere più naturale
-    setTimeout(() => {
-      const response = getHardcodedResponse(userMessage, aiKnowledge, menuCategories)
-      setMessages((prev) => [...prev, { role: "assistant", content: response.message }])
-      setHasBookingInterest(response.hasBookingInterest)
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, { role: "user", content: userMessage }],
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.details || errorData.error || "Errore nella risposta")
+      }
+
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(data.error)
+      }
+      
+      setMessages((prev) => [...prev, { role: "assistant", content: data.message }])
+      setHasBookingInterest(data.hasBookingInterest || false)
+    } catch (error: any) {
+      console.error("Error:", error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: `Mi dispiace, c'è stato un errore. ${error.message || "Riprova più tardi."} 😔`,
+        },
+      ])
+    } finally {
       setIsLoading(false)
-    }, 500) // 500ms di delay per simulare il tempo di risposta
+    }
   }
 
   const handleClear = () => {
