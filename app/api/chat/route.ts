@@ -38,7 +38,6 @@ async function generateMenuText(): Promise<string> {
   }))
   
   let menuText = "\nMENÙ COMPLETO DEL RISTORANTE BARINELLO:\n\n"
-        { name: "Pepata di Cozze", description: "Cozze fresche con pepe nero e vino bianco", price: "€12.00" },
         { name: "Plateau Frutti di Mare (per 2 persone)", description: "Ostriche, Vongole, Scampi, Sashimi di Salmone, Pesce del Giorno, Caviale 10 gr", price: "€55.00" },
         { name: "Degustazione Barinello", description: "Selezione speciale del nostro chef", price: "€20.00" },
         { name: "Souté di Vongole", description: "Vongole fresche in padella con aglio e prezzemolo", price: "€18.00" },
