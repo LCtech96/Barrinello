@@ -506,7 +506,25 @@ ISTRUZIONI FINALI:
         throw fetchError
       }
     }
-    } catch (groqError: any) {
+    
+    // Se arriviamo qui, la chiamata è andata a buon fine
+    const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
+
+    const lastMessage = messages[messages.length - 1]
+    
+    // Controlla se c'è interesse per prenotazioni
+    const hasBookingInterest = 
+      lastMessage?.content?.toLowerCase().includes("prenot") ||
+      lastMessage?.content?.toLowerCase().includes("tavolo") ||
+      lastMessage?.content?.toLowerCase().includes("disponibil") ||
+      text.toLowerCase().includes("prenot") ||
+      text.toLowerCase().includes("tavolo")
+
+    return NextResponse.json({
+      message: text,
+      hasBookingInterest,
+    })
+  } catch (groqError: any) {
       console.error("=== GROQ API ERROR ===")
       console.error("Error:", groqError)
       console.error("Error type:", groqError?.constructor?.name)
@@ -532,24 +550,6 @@ ISTRUZIONI FINALI:
       }
       // Rilancia l'errore originale se non è stato gestito
       throw groqError
-    }
-
-    const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
-
-    const lastMessage = messages[messages.length - 1]
-    
-    // Controlla se c'è interesse per prenotazioni
-    const hasBookingInterest = 
-      lastMessage?.content?.toLowerCase().includes("prenot") ||
-      lastMessage?.content?.toLowerCase().includes("tavolo") ||
-      lastMessage?.content?.toLowerCase().includes("disponibil") ||
-      text.toLowerCase().includes("prenot") ||
-      text.toLowerCase().includes("tavolo")
-
-    return NextResponse.json({
-      message: text,
-      hasBookingInterest,
-    })
   } catch (error: any) {
     console.error("AI Chat Error:", error)
     console.error("Error details:", JSON.stringify(error, null, 2))
