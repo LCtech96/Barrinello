@@ -129,6 +129,49 @@ export function AIAssistant() {
       }
     }
     
+    // Chiusura cucina
+    if (message.includes("cucina") && (message.includes("chiude") || message.includes("chiusura") || message.includes("orario"))) {
+      // Cerca informazioni sulla cucina nelle informazioni aggiuntive
+      if (knowledge.additionalInfo && knowledge.additionalInfo.toLowerCase().includes("cucina")) {
+        // Estrai la parte relativa alla cucina dalle informazioni aggiuntive
+        const additionalInfoLower = knowledge.additionalInfo.toLowerCase()
+        const cucinaIndex = additionalInfoLower.indexOf("cucina")
+        if (cucinaIndex !== -1) {
+          // Prova a estrarre una frase completa che contiene "cucina"
+          const start = Math.max(0, cucinaIndex - 50)
+          const end = Math.min(knowledge.additionalInfo.length, cucinaIndex + 200)
+          const cucinaInfo = knowledge.additionalInfo.substring(start, end)
+          
+          // Se contiene informazioni sulla cucina, usale
+          if (cucinaInfo.length > 20) {
+            return {
+              message: cucinaInfo.trim(),
+              hasBookingInterest: false
+            }
+          }
+        }
+      }
+      
+      // Default: determina stagione e rispondi di conseguenza
+      const now = new Date()
+      const month = now.getMonth() + 1 // 1-12
+      // Estate: giugno, luglio, agosto, settembre (6-9)
+      // Inverno: ottobre, novembre, dicembre, gennaio, febbraio, marzo, aprile, maggio (10-12, 1-5)
+      const isSummer = month >= 6 && month <= 9
+      
+      if (isSummer) {
+        return {
+          message: "La cucina chiude fino alla chiusura del ristorante (01:00 del mattino successivo) durante il periodo estivo. 🍽️",
+          hasBookingInterest: false
+        }
+      } else {
+        return {
+          message: "La cucina chiude intorno alle 23:00 durante il periodo invernale. 🍽️",
+          hasBookingInterest: false
+        }
+      }
+    }
+    
     // Che giorno è oggi
     if (message.includes("giorno") && (message.includes("oggi") || message.includes("è") || message.includes("sono"))) {
       const now = new Date()
