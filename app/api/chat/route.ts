@@ -1,7 +1,7 @@
 import Groq from "groq-sdk"
 import { NextRequest, NextResponse } from "next/server"
 
-const API_KEY = process.env.GROQ_API_KEY || ""
+const API_KEY = process.env.GROQ_API_KEY || process.env.groq_api_key || ""
 
 // Funzione per generare il menù completo in formato testo
 function generateMenuText(): string {
@@ -242,36 +242,21 @@ function generateMenuText(): string {
   return menuText
 }
 
-const BASE_SYSTEM_PROMPT = `Sei un venditore professionale ed esperto del Ristorante Barinello, un ristorante di pesce a Terrasini, Sicilia. Il tuo ruolo è quello di consigliare piatti e drink ai clienti in modo competente, entusiasta e persuasivo.
+const BASE_SYSTEM_PROMPT = `Sei l'assistente AI del Ristorante Barinello, ristorante di pesce a Terrasini, Sicilia.
 
-INFORMAZIONI SUL RISTORANTE:
+REGOLE FONDAMENTALI:
+1. Rispondi SOLO a domande sul Ristorante Barinello. Per altre richieste, rispondi educatamente che puoi aiutare solo con Barinello.
+2. Risposte BREVISSIME: massimo 2-3 frasi. Essere conciso è prioritario.
+3. Quando menzioni un piatto, includi sempre nome e prezzo.
+4. Usa max 1 emoji per messaggio.
+5. Linguaggio amichevole ma professionale.
+6. Rispondi sempre in italiano.
+
+INFORMAZIONI RISTORANTE:
 - Nome: Ristorante Barinello
 - Tipo: Cucina di pesce tradizionale siciliana
 - Location: Lungomare Peppino Impastato N1, Terrasini Favarotta, Italy, 90049
-- Specialità: Pesce fresco del Mediterraneo, cucina tradizionale siciliana
-- Servizi: Ristorante, Asporto, Terrazza affacciata sul mare
-
-IL TUO RUOLO COME VENDITORE:
-1. Sei un esperto conoscitore del menù e della cucina siciliana
-2. Consiglia piatti e drink in base alle preferenze del cliente
-3. Evidenzia le specialità del ristorante e i piatti più richiesti
-4. Suggerisci abbinamenti tra cibo e vino/birra quando appropriato
-5. Usa un linguaggio entusiasta ma professionale
-6. Crea interesse e desiderio per i nostri piatti
-7. Rispondi sempre con i prezzi quando menzioni un piatto o drink
-8. Suggerisci menu completi (antipasto, primo, secondo, dolce) quando il cliente chiede consigli
-
-REGOLE IMPORTANTI:
-1. Rispondi SOLO a domande relative al Ristorante Barinello
-2. Se qualcuno chiede informazioni su altri ristoranti o argomenti non correlati, rispondi educatamente che puoi aiutare solo con informazioni su Barinello
-3. Usa un linguaggio naturale, amichevole, entusiasta e professionale
-4. Usa emoji in modo moderato e appropriato (max 2-3 per messaggio)
-5. Se qualcuno mostra interesse per prenotazioni, menzioni questo nella risposta
-6. Mantieni le risposte concise ma informative
-7. Quando consigli un piatto, menziona sempre il prezzo
-8. Se il cliente chiede "cosa mi consigli?" o simili, proponi 2-3 opzioni diverse con brevi descrizioni
-
-Rispondi sempre in italiano.`
+- Servizi: Ristorante, Asporto, Terrazza affacciata sul mare`
 
 // Funzione per caricare la conoscenza AI dall'admin
 async function loadAIKnowledge() {
@@ -378,29 +363,22 @@ export async function POST(request: NextRequest) {
       knowledgeInfo += `- Informazioni aggiuntive: ${aiKnowledge.additionalInfo}\n`
     }
     
-    const SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
-${knowledgeInfo}
-`
-    
-    // Aggiungi informazioni su data e ora al system prompt
-    const systemPromptWithTime = `${SYSTEM_PROMPT}
+    // Costruisci il prompt finale con tutte le informazioni
+    const systemPromptWithTime = `${BASE_SYSTEM_PROMPT}
 
+INFORMAZIONI AGGIORNATE DAL ADMIN:
+${knowledgeInfo}
+
+MENÙ COMPLETO:
 ${menuText}
 
-INFORMAZIONI TEMPORALI (AGGIORNATE IN TEMPO REALE):
-- Data e ora attuale: ${currentDate}, ore ${currentTime} (fuso orario italiano, Europe/Rome)
-- IMPORTANTE: NON menzionare data e ora nelle tue risposte a meno che il cliente non le chieda esplicitamente
-- Usa queste informazioni SOLO quando qualcuno chiede esplicitamente "che ore sono", "che giorno è", o informazioni relative alla data/ora
-- Usa queste informazioni anche per determinare se il ristorante è attualmente aperto o chiuso, ma NON menzionare la data/ora quando rispondi a domande sui piatti o consigli
-- Se il cliente chiede se siete aperti, rispondi semplicemente "sì" o "no" senza specificare data e ora a meno che non vengano richieste
-
-ISTRUZIONI SUL MENÙ:
-- Hai accesso completo al menù sopra indicato
-- Quando un cliente chiede informazioni su un piatto, fornisci sempre nome, descrizione e prezzo
-- Se un cliente chiede consigli, suggerisci piatti specifici dal menù con i loro prezzi
-- Consiglia abbinamenti tra piatti e bevande (vini, birre) quando appropriato
-- Evidenzia i piatti più popolari e le specialità del ristorante
-- Se un cliente chiede un piatto che non è nel menù, suggerisci alternative simili presenti nel menù`
+ISTRUZIONI FINALI:
+- Rispondi SOLO a domande sul Ristorante Barinello
+- Risposte BREVISSIME (max 2-3 frasi)
+- Quando menzioni un piatto: nome + prezzo
+- Usa le informazioni dalla sezione "INFORMAZIONI AGGIORNATE DAL ADMIN" sopra per rispondere alle domande
+- Data/ora attuale: ${currentDate}, ${currentTime} (Italia). Usa SOLO se richiesto esplicitamente o per verificare apertura/chiusura.
+- Se chiedono se siete aperti: rispondi solo "sì" o "no" senza data/ora`
 
     // Costruisci i messaggi per Groq
     // Filtra i messaggi escludendo il messaggio di benvenuto iniziale
@@ -434,8 +412,8 @@ ISTRUZIONI SUL MENÙ:
     const completion = await groq.chat.completions.create({
       messages: groqMessages,
       model: "llama-3.1-8b-instant", // Modello più leggero e veloce
-      temperature: 0.7,
-      max_tokens: 500,
+      temperature: 0.6, // Ridotto per risposte più concise
+      max_tokens: 200, // Ridotto drasticamente per risposte brevissime
     })
 
     const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
