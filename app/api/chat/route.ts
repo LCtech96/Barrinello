@@ -3,10 +3,39 @@ import { NextRequest, NextResponse } from "next/server"
 const API_KEY = process.env.GROQ_API_KEY || process.env.groq_api_key || ""
 
 // Funzione per generare il menù completo in formato testo
-function generateMenuText(): string {
-  const menuCategories = [
-    {
-      title: "Antipasti di Mare",
+async function generateMenuText(): Promise<string> {
+  // Prova a caricare il menu da Supabase
+  let menuCategories = []
+  
+  try {
+    const { supabaseServer } = await import("@/lib/supabase-server")
+    const supabase = supabaseServer
+    if (supabase) {
+      const { data, error } = await supabase
+        .from("admin_data")
+        .select("value")
+        .eq("key", "menu")
+        .single()
+
+      if (!error && data && data.value && Array.isArray(data.value)) {
+        menuCategories = data.value
+      }
+    }
+  } catch (error) {
+    console.error("Error loading menu from Supabase:", error)
+  }
+  
+  // Se non ci sono dati salvati, usa i dati di default
+  if (menuCategories.length === 0) {
+    const { defaultMenuCategories } = await import("@/lib/menu-data-default")
+    menuCategories = defaultMenuCategories
+  }
+  
+  // Filtra solo i piatti visibili
+  menuCategories = menuCategories.map((category: any) => ({
+    ...category,
+    dishes: category.dishes.filter((dish: any) => dish.visible !== false)
+  }))
       dishes: [
         { name: "Polipetti Murati", description: "Polipetti marinati con olio, limone e prezzemolo", price: "€16.00" },
         { name: "Ostrica", description: "Ostriche freschissime del giorno", price: "€4.00" },
@@ -219,11 +248,6 @@ function generateMenuText(): string {
         { name: "Cornetto Special", description: "", price: "€1.80" },
         { name: "Mignon Dolce / Salato", description: "", price: "€1.00" },
         { name: "Rosticceria", description: "", price: "€2.00" },
-        { name: "Rosticceria Special", description: "", price: "€2.50" }
-      ]
-    }
-  ]
-
   let menuText = "\nMENÙ COMPLETO DEL RISTORANTE BARINELLO:\n\n"
   
   menuCategories.forEach(category => {
@@ -352,7 +376,7 @@ export async function POST(request: NextRequest) {
     console.log("API Key starts with gsk_:", API_KEY?.startsWith("gsk_") || false)
 
     // Genera il menù completo
-    const menuText = generateMenuText()
+    const menuText = await generateMenuText()
     console.log("Menu text generated, length:", menuText.length)
     
     // Costruisci il system prompt con le informazioni dall'admin
