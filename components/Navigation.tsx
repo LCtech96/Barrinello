@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
-import { Menu, ShoppingBag, Moon, Sun, X } from "lucide-react"
+import { Menu, Moon, Sun, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface NavigationProps {
@@ -21,21 +21,11 @@ export function Navigation({ className }: NavigationProps) {
     setMounted(true)
   }, [])
 
-  const handleClick = (item: string) => {
-    if (item === "menu") {
-      router.push("/menu")
-    } else if (item === "takeaway") {
-      router.push("/asporto")
-    } else {
-      setShowDisclaimer(item)
-      setTimeout(() => setShowDisclaimer(null), 3000)
-    }
+  const handleClick = () => {
+    router.push("/menu")
   }
 
-  const navItems = [
-    { id: "menu", label: "Menù", icon: Menu },
-    { id: "takeaway", label: "Asporto", icon: ShoppingBag },
-  ]
+  const navItems = [{ id: "menu", label: "Menù", icon: Menu }]
 
   return (
     <>
@@ -48,7 +38,7 @@ export function Navigation({ className }: NavigationProps) {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleClick(item.id)}
+                  onClick={handleClick}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-accent transition-colors"
                 >
                   <Icon className="w-5 h-5" />
@@ -75,7 +65,7 @@ export function Navigation({ className }: NavigationProps) {
             return (
               <button
                 key={item.id}
-                onClick={() => handleClick(item.id)}
+                onClick={handleClick}
                 className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent transition-colors"
               >
                 <Icon className="w-5 h-5" />

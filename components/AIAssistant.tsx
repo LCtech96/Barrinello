@@ -438,7 +438,7 @@ export function AIAssistant() {
     // Menu generale
     if (message.includes("menu") || message.includes("piatti") || message.includes("cosa avete") || message.includes("cosa c'è")) {
       return {
-        message: "Abbiamo un'ampia selezione di piatti di pesce freschissimo! 🐟 Puoi vedere il menu completo nella sezione 'Asporto' del sito. Specialità: antipasti di mare, primi piatti, grigliate e molto altro!",
+        message: "Abbiamo un'ampia selezione di piatti di pesce freschissimo! 🐟 Puoi vedere il menu completo nella sezione 'Menù' del sito. Specialità: antipasti di mare, primi piatti, grigliate e molto altro!",
         hasBookingInterest: false
       }
     }
@@ -446,7 +446,7 @@ export function AIAssistant() {
     // Prezzi
     if (message.includes("prezzo") || message.includes("quanto costa") || message.includes("costi")) {
       return {
-        message: "I prezzi variano a seconda del piatto. Puoi vedere tutti i prezzi nel menu nella sezione 'Asporto'. I nostri antipasti partono da €10, i primi da €14 e i secondi da €12.",
+        message: "I prezzi variano a seconda del piatto. Puoi vedere tutti i prezzi nel menu nella sezione 'Menù'. I nostri antipasti partono da €10, i primi da €14 e i secondi da €12.",
         hasBookingInterest: false
       }
     }
@@ -470,7 +470,7 @@ export function AIAssistant() {
     // Asporto
     if (message.includes("asporto") || message.includes("take away") || message.includes("portare via")) {
       return {
-        message: "Sì, facciamo asporto! 🍱 Puoi vedere il menu completo nella sezione 'Asporto' del sito e ordinarci via WhatsApp.",
+        message: "Sì, facciamo asporto! 🍱 Contattaci telefonicamente al +39 377 347 7122 per ordinare.",
         hasBookingInterest: false
       }
     }
