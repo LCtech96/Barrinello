@@ -38,3 +38,5 @@ VERCEL_ENV_VARIABLES.txt
 *.tsbuildinfo
 next-env.d.ts
 
+
+.vercel
