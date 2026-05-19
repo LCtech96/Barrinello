@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { Facebook, MessageCircle, X } from "lucide-react"
+import { Facebook, Phone, X } from "lucide-react"
+
+const PHONE_NUMBER = "+393773477122"
+const PHONE_DISPLAY = "+39 377 347 7122"
 
 export function Footer() {
   const [showDisclaimer, setShowDisclaimer] = useState<string | null>(null)
@@ -24,13 +27,11 @@ export function Footer() {
               <span>Facebook</span>
             </button>
             <a
-              href="https://wa.me/393207279857"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+              href={`tel:${PHONE_NUMBER}`}
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              <MessageCircle className="w-5 h-5" />
-              <span>WhatsApp</span>
+              <Phone className="w-5 h-5" />
+              <span>Chiama {PHONE_DISPLAY}</span>
             </a>
           </div>
           <div className="text-center">
