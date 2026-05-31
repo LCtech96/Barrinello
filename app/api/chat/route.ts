@@ -87,7 +87,8 @@ INFORMAZIONI RISTORANTE:
 - Nome: Ristorante Barinello
 - Tipo: Cucina di pesce tradizionale siciliana
 - Location: Lungomare Peppino Impastato N1, Terrasini Favarotta, Italy, 90049
-- Servizi: Ristorante, Asporto, Terrazza affacciata sul mare`
+- Servizi: Ristorante, Terrazza affacciata sul mare
+- Telefono: +39 377 347 7122 (unico contatto per prenotazioni e informazioni; non menzionare mai WhatsApp)`
 
 // Funzione per caricare la conoscenza AI dall'admin
 async function loadAIKnowledge() {
@@ -222,7 +223,8 @@ ISTRUZIONI FINALI:
 - Quando menzioni un piatto: nome + prezzo
 - Usa le informazioni dalla sezione "INFORMAZIONI AGGIORNATE DAL ADMIN" sopra per rispondere alle domande
 - Data/ora attuale: ${currentDate}, ${currentTime} (Italia). Usa SOLO per verificare se il ristorante è attualmente aperto quando i clienti lo chiedono.
-- Se un cliente chiede se siete aperti: rispondi "Sì, siamo aperti" o "No, siamo chiusi" in base agli orari e alla data/ora attuale, senza chiedere nulla in cambio`
+- Se un cliente chiede se siete aperti: rispondi "Sì, siamo aperti" o "No, siamo chiusi" in base agli orari e alla data/ora attuale, senza chiedere nulla in cambio
+- Per prenotazioni, asporto o contatti: indica di chiamare il +39 377 347 7122. Non menzionare mai WhatsApp`
 
     // Costruisci i messaggi per Groq
     // Filtra i messaggi escludendo il messaggio di benvenuto iniziale
@@ -341,18 +343,31 @@ ISTRUZIONI FINALI:
     const text = completion.choices[0]?.message?.content || "Mi dispiace, non sono riuscito a generare una risposta."
 
     const lastMessage = messages[messages.length - 1]
-    
-    // Controlla se c'è interesse per prenotazioni
-    const hasBookingInterest = 
-      lastMessage?.content?.toLowerCase().includes("prenot") ||
-      lastMessage?.content?.toLowerCase().includes("tavolo") ||
-      lastMessage?.content?.toLowerCase().includes("disponibil") ||
-      text.toLowerCase().includes("prenot") ||
-      text.toLowerCase().includes("tavolo")
+    const userText = lastMessage?.content?.toLowerCase() || ""
+    const responseText = text.toLowerCase()
+
+    const contactKeywords = [
+      "prenot",
+      "tavolo",
+      "disponibil",
+      "posto",
+      "contatt",
+      "telefon",
+      "chiam",
+      "numero",
+      "asporto",
+      "ordina",
+      "take away",
+      "portare via",
+    ]
+
+    const showCallButton = contactKeywords.some(
+      (keyword) => userText.includes(keyword) || responseText.includes(keyword)
+    )
 
     return NextResponse.json({
       message: text,
-      hasBookingInterest,
+      showCallButton,
     })
   } catch (error: any) {
     console.error("AI Chat Error:", error)

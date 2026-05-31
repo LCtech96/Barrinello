@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { MessageCircle, X, Send, Trash2, Save, MessageSquare } from "lucide-react"
+import { Phone, X, Send, Trash2, Save, MessageSquare } from "lucide-react"
+
+const PHONE_NUMBER = "+393773477122"
+const PHONE_DISPLAY = "+39 377 347 7122"
 
 interface Message {
   role: "user" | "assistant"
@@ -39,7 +42,7 @@ export function AIAssistant() {
   ])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [hasBookingInterest, setHasBookingInterest] = useState(false)
+  const [showCallButton, setShowCallButton] = useState(false)
   const [aiKnowledge, setAiKnowledge] = useState<AIKnowledge>({
     openingHours: "07:00 - 01:00",
     closingDays: [],
@@ -119,14 +122,14 @@ export function AIAssistant() {
   }
 
   // Funzione per generare risposte hardcoded
-  const getHardcodedResponse = (userMessage: string, knowledge: AIKnowledge, menu: Category[]): { message: string; hasBookingInterest: boolean } => {
+  const getHardcodedResponse = (userMessage: string, knowledge: AIKnowledge, menu: Category[]): { message: string; showCallButton: boolean } => {
     const message = userMessage.toLowerCase().trim()
     
     // Saluti
     if (message.match(/^(ciao|salve|buongiorno|buonasera|buon pomeriggio|hey|hi)$/)) {
       return {
         message: "Ciao! 👋 Benvenuto al Ristorante Barinello. Come posso aiutarti?",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -190,7 +193,7 @@ export function AIAssistant() {
       
       return {
         message: statusMessage + hoursMessage + eventMessage,
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -211,7 +214,7 @@ export function AIAssistant() {
           if (cucinaInfo.length > 20) {
             return {
               message: cucinaInfo.trim(),
-              hasBookingInterest: false
+              showCallButton: false
             }
           }
         }
@@ -227,12 +230,12 @@ export function AIAssistant() {
       if (isSummer) {
         return {
           message: "La cucina chiude fino alla chiusura del ristorante (01:00 del mattino successivo) durante il periodo estivo. 🍽️",
-          hasBookingInterest: false
+          showCallButton: false
         }
       } else {
         return {
           message: "La cucina chiude intorno alle 23:00 durante il periodo invernale. 🍽️",
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -248,7 +251,7 @@ export function AIAssistant() {
       })
       return {
         message: `Oggi è ${date}. 📅`,
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -258,7 +261,7 @@ export function AIAssistant() {
       const time = now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
       return {
         message: `Sono le ${time}. 🕐`,
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -274,15 +277,15 @@ export function AIAssistant() {
       const time = now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })
       return {
         message: `Oggi è ${date}, sono le ${time}. 📅🕐`,
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
     // Prenotazioni
     if (message.includes("prenot") || message.includes("tavolo") || message.includes("disponibil") || message.includes("posto")) {
       return {
-        message: "Per prenotare un tavolo, puoi contattarci via WhatsApp! 📱 Ti risponderemo il prima possibile.",
-        hasBookingInterest: true
+        message: `Per prenotare un tavolo, chiamaci al ${PHONE_DISPLAY}. Ti risponderemo il prima possibile.`,
+        showCallButton: true
       }
     }
     
@@ -303,7 +306,7 @@ export function AIAssistant() {
       
       return {
         message: response.trim(),
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -324,7 +327,7 @@ export function AIAssistant() {
       
       return {
         message: response.trim(),
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -345,7 +348,7 @@ export function AIAssistant() {
       
       return {
         message: response.trim(),
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -356,7 +359,7 @@ export function AIAssistant() {
       if (dolci && dolci.dishes.length > 0) {
         return {
           message: `🍰 I NOSTRI DOLCI:\n${formatDishesList(dolci.dishes)}`,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -368,7 +371,7 @@ export function AIAssistant() {
       if (contorni && contorni.dishes.length > 0) {
         return {
           message: `🥗 I NOSTRI CONTORNI:\n${formatDishesList(contorni.dishes)}`,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -380,7 +383,7 @@ export function AIAssistant() {
       if (birre && birre.dishes.length > 0) {
         return {
           message: `🍺 LE NOSTRE BIRRE:\n${formatDishesList(birre.dishes)}`,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -407,7 +410,7 @@ export function AIAssistant() {
       
       return {
         message: response.trim(),
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -418,7 +421,7 @@ export function AIAssistant() {
       if (bibite && bibite.dishes.length > 0) {
         return {
           message: `🥤 LE NOSTRE BIBITE:\n${formatDishesList(bibite.dishes)}`,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -430,7 +433,7 @@ export function AIAssistant() {
       if (caffetteria && caffetteria.dishes.length > 0) {
         return {
           message: `☕ CAFFETTERIA:\n${formatDishesList(caffetteria.dishes)}`,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -439,7 +442,7 @@ export function AIAssistant() {
     if (message.includes("menu") || message.includes("piatti") || message.includes("cosa avete") || message.includes("cosa c'è")) {
       return {
         message: "Abbiamo un'ampia selezione di piatti di pesce freschissimo! 🐟 Puoi vedere il menu completo nella sezione 'Menù' del sito. Specialità: antipasti di mare, primi piatti, grigliate e molto altro!",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -447,7 +450,7 @@ export function AIAssistant() {
     if (message.includes("prezzo") || message.includes("quanto costa") || message.includes("costi")) {
       return {
         message: "I prezzi variano a seconda del piatto. Puoi vedere tutti i prezzi nel menu nella sezione 'Menù'. I nostri antipasti partono da €10, i primi da €14 e i secondi da €12.",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -455,7 +458,7 @@ export function AIAssistant() {
     if (message.includes("dove") || message.includes("indirizzo") || message.includes("posizione") || message.includes("ubicazione") || message.includes("come arrivare")) {
       return {
         message: "Ci troviamo a Terrasini, in Lungomare Peppino Impastato N1, Terrasini Favarotta. 🗺️ Siamo affacciati sul mare con una bellissima terrazza!",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -463,23 +466,23 @@ export function AIAssistant() {
     if (message.includes("specialità") || message.includes("tipico") || message.includes("famoso") || message.includes("consigli")) {
       return {
         message: "Le nostre specialità sono i piatti di pesce freschissimo del Mediterraneo! 🐟 Ti consiglio: Polipetti Murati (€16), Tagliolino Ricci e Gambero (€26), Grigliata Mista di Pesce (€35 per 2 persone).",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
     // Asporto
     if (message.includes("asporto") || message.includes("take away") || message.includes("portare via")) {
       return {
-        message: "Sì, facciamo asporto! 🍱 Contattaci telefonicamente al +39 377 347 7122 per ordinare.",
-        hasBookingInterest: false
+        message: `Sì, facciamo asporto! 🍱 Chiamaci al ${PHONE_DISPLAY} per ordinare.`,
+        showCallButton: true
       }
     }
     
     // Contatti
     if (message.includes("telefono") || message.includes("numero") || message.includes("contatto") || message.includes("chiamare")) {
       return {
-        message: "Puoi contattarci via WhatsApp al numero +39 320 727 9857. 📱 Siamo sempre disponibili per rispondere alle tue domande!",
-        hasBookingInterest: false
+        message: `Chiamaci al ${PHONE_DISPLAY}. Siamo sempre disponibili per rispondere alle tue domande!`,
+        showCallButton: true
       }
     }
     
@@ -487,7 +490,7 @@ export function AIAssistant() {
     if (message.includes("grazie") || message.includes("grazie mille") || message.includes("perfetto")) {
       return {
         message: "Prego! 😊 Se hai altre domande, sono qui per aiutarti!",
-        hasBookingInterest: false
+        showCallButton: false
       }
     }
     
@@ -503,7 +506,7 @@ export function AIAssistant() {
       if (hasMatchingKeywords) {
         return {
           message: knowledge.additionalInfo,
-          hasBookingInterest: false
+          showCallButton: false
         }
       }
     }
@@ -518,7 +521,7 @@ export function AIAssistant() {
     
     return {
       message: defaultMessage,
-      hasBookingInterest: false
+      showCallButton: false
     }
   }
 
@@ -537,7 +540,7 @@ export function AIAssistant() {
     setInput("")
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
     setIsLoading(true)
-    setHasBookingInterest(false)
+    setShowCallButton(false)
 
     try {
       const response = await fetch("/api/chat", {
@@ -562,7 +565,7 @@ export function AIAssistant() {
       }
       
       setMessages((prev) => [...prev, { role: "assistant", content: data.message }])
-      setHasBookingInterest(data.hasBookingInterest || false)
+      setShowCallButton(data.showCallButton || false)
     } catch (error: any) {
       console.error("Error:", error)
       setMessages((prev) => [
@@ -585,7 +588,7 @@ export function AIAssistant() {
           content: "Ciao! 👋 Sono l'assistente del Ristorante Barinello. Come posso aiutarti oggi?",
         },
       ])
-      setHasBookingInterest(false)
+      setShowCallButton(false)
     }
   }
 
@@ -603,23 +606,6 @@ export function AIAssistant() {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-  }
-
-  const generateWhatsAppSummary = () => {
-    const summary = messages
-      .filter((msg) => msg.role === "user" || msg.content.toLowerCase().includes("prenot") || msg.content.toLowerCase().includes("tavolo"))
-      .map((msg) => `${msg.role === "user" ? "Cliente" : "Assistente"}: ${msg.content}`)
-      .join("\n\n")
-    
-    return `*Nuova richiesta da Assistente AI Barinello*\n\n${summary}`
-  }
-
-  const handleWhatsApp = () => {
-    const summary = generateWhatsAppSummary()
-    const phoneNumber = "393207279857"
-    const encodedMessage = encodeURIComponent(summary)
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`
-    window.open(whatsappUrl, "_blank")
   }
 
   return (
@@ -710,16 +696,16 @@ export function AIAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* WhatsApp Button (if booking interest) */}
-          {hasBookingInterest && (
+          {/* Call Button */}
+          {showCallButton && (
             <div className="px-4 py-2 border-t border-border">
-              <button
-                onClick={handleWhatsApp}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              <a
+                href={`tel:${PHONE_NUMBER}`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
-                <MessageCircle className="w-5 h-5" />
-                <span>Contatta via WhatsApp</span>
-              </button>
+                <Phone className="w-5 h-5" />
+                <span>Chiama {PHONE_DISPLAY}</span>
+              </a>
             </div>
           )}
 
